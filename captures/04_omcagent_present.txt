@@ -1,0 +1,6 @@
+=== APPAREIL 2 - OMC AGENT PRÉSENT ===
+Commande : adb shell pm list packages | grep omcagent
+
+package:com.samsung.android.app.omcagent
+
+    versionName=5.8.19

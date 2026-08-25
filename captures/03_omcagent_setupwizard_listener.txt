@@ -1,0 +1,15 @@
+=== APPAREIL 2 - OMC AGENT LISTENERS (SETUPWIZARD_COMPLETE) ===
+Commande : adb shell dumpsys package com.samsung.android.app.omcagent | grep -E 'SETUPWIZARD|SUWActivity|versionName'
+
+      com.samsung.omcagent.intent.action.OMC_SETUPWIZARD:
+        92cb7fc com.samsung.android.app.omcagent/.rna.ui.SUWActivity filter 1014e85
+          Action: "com.samsung.omcagent.intent.action.OMC_SETUPWIZARD"
+      com.sec.android.app.secsetupwizard.SETUPWIZARD_COMPLETE:
+          Action: "com.sec.android.app.secsetupwizard.SETUPWIZARD_COMPLETE"
+          Action: "com.sec.android.app.setupwizard.SETUPWIZARD_COMPLETE"
+          Action: "com.sec.android.app.secsetupwizard.SETUPWIZARD_COMPLETE"
+          Action: "com.sec.android.app.setupwizard.SETUPWIZARD_COMPLETE"
+      com.sec.android.app.setupwizard.SETUPWIZARD_COMPLETE:
+          Action: "com.sec.android.app.secsetupwizard.SETUPWIZARD_COMPLETE"
+          Action: "com.sec.android.app.setupwizard.SETUPWIZARD_COMPLETE"
+    versionName=5.8.19

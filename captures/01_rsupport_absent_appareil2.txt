@@ -1,0 +1,4 @@
+=== APPAREIL 2 (RFGL630AEAA) - RSSupport AAS2 ===
+Commande : adb shell pm list packages | grep rsupport
+
+(aucun résultat = RSSupport absent)

@@ -1,0 +1,31 @@
+=== APPAREIL 2 - LISTE APPS TIERCES (26 apps, RSSupport ABSENT) ===
+Commande : adb shell pm list packages -3
+
+package:com.netflix.mediaclient
+package:com.microsoft.office.outlook
+package:com.sec.android.app.sbrowser
+package:com.samsung.android.calendar
+package:com.samsung.android.app.reminder
+package:com.google.android.apps.youtube.music
+package:com.sec.android.app.shealth
+package:com.sec.android.app.popupcalculator
+package:com.google.android.apps.docs
+package:com.samsung.android.voc
+package:com.sec.android.app.clockpackage
+package:com.linkedin.android
+package:com.spotify.music
+package:com.samsung.android.app.find
+package:com.samsung.android.app.notes
+package:com.google.android.videos
+package:com.sec.android.app.voicenote
+package:com.facebook.katana
+package:com.samsung.sree
+package:com.samsung.android.app.spage
+package:com.samsung.android.oneconnect
+package:com.samsung.android.game.gamehome
+package:com.microsoft.office.officehubrow
+package:com.samsung.android.app.watchmanager
+package:com.sec.android.app.kidshome
+package:com.instagram.android
+
+Total : 26 apps tierces

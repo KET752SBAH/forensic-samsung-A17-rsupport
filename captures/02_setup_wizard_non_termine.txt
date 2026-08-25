@@ -1,0 +1,6 @@
+=== APPAREIL 2 - ÉTAT SETUP WIZARD ===
+Commande : adb shell settings get global user_setup_complete
+
+global/user_setup_complete = null
+
+>> null = Setup Wizard NON terminé = RSSupport PAS encore installé

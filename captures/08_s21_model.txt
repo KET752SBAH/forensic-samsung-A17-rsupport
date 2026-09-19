@@ -1,0 +1,9 @@
+SM-G991N
+AP3A.240905.015.A2.G991NKSSCHZA9
+15
+RSSupport absent
+package:com.samsung.android.app.omcagent
+    versionName=5.7.36
+      firstInstallTime=2025-09-13 16:29:51
+1
+1

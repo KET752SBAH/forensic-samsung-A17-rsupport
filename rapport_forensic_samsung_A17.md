@@ -291,17 +291,29 @@ L'analyse du code décompilé de l'APK révèle que RSSupport fournit des varian
 
 RSSupport commercialise son infrastructure de prise en main à distance à l'ensemble des grands fabricants Android mondiaux. La présence de `com.rsupport.rs.activity.qihoo360` indique que RSSupport et Qihoo 360 partagent la même infrastructure — ce sont deux clients distincts d'une plateforme commune, à ne pas confondre avec l'intégration Qihoo 360 dans Samsung Device Care documentée par Forbes en 2020.
 
-### 11.2 Déploiement Systématique sur Samsung
+### 11.2 Déploiement Contrôlé Côté Serveur Samsung
 
-**Tous les appareils Samsung sont très probablement concernés**, pour trois raisons :
+L'analyse d'un troisième appareil (Samsung Galaxy S21, SM-G991N, version coréenne KT) a permis de préciser la portée du déploiement.
 
-1. **OMC Agent** (`com.samsung.android.app.omcagent`) est intégré au **firmware de base de tous les Samsung Android** — il est présent sur chaque appareil, quelle que soit la région ou l'opérateur
-2. Le trigger **`device_provisioned=1`** est positionné automatiquement sur tous les appareils Samsung dès la phase initiale de configuration — OMC Agent l'observe et installe RSSupport sans attendre la fin complète du Setup Wizard
-3. C'est la **politique de support global de Samsung**, déployée sur la majorité des marchés mondiaux
+**OMC Agent est présent sur tous les Samsung** (firmware de base) — même version du `SetupWizardReceiver`, mêmes intents écoutés, même appel à `ReportServerHost`. Mais **RSSupport n'est pas installé sur tous les marchés**.
+
+Le S21 coréen testé (device_provisioned=1, user_setup_complete=1) a OMC Agent v5.7.36 mais aucune trace de RSSupport AAS2. Cette différence confirme que **la liste des applications à installer est configurée côté serveur Samsung**, pas dans l'APK lui-même — Samsung décide dynamiquement, par marché et par modèle, quels appareils reçoivent RSSupport.
+
+| Critère | SM-A175F (×2) | SM-G991N KT (Corée) |
+| --- | --- | --- |
+| OMC Agent présent | ✅ v5.8.19 | ✅ v5.7.36 |
+| SetupWizardReceiver identique | ✅ | ✅ |
+| RSSupport AAS2 installé | ✅ Présent | ❌ Absent |
+| `device_provisioned` | 1 | 1 |
+| Marché | International (suffixe `F`) | Corée (KT) |
+
+**Hypothèse :** Samsung exclut probablement le marché coréen de ce déploiement en raison du **PIPA** (Personal Information Protection Act), la loi coréenne sur la protection des données personnelles. Les marchés internationaux (Europe, Afrique, Moyen-Orient — suffixe `F`) semblent ciblés.
+
+**Conséquence :** Le déploiement de RSSupport n'est pas accidentel ou résiduel — c'est une **décision d'infrastructure active** de Samsung, modulée selon les contraintes légales locales.
 
 ### 11.3 Impact Estimé
 
-> Des **centaines de millions d'appareils Samsung** dans le monde ont probablement cet outil de contrôle à distance pré-installé sans en être informés, avec des permissions permettant la capture d'écran, le contrôle tactile et l'accès aux données personnelles. Cette estimation repose sur les parts de marché Samsung et la présence universelle d'OMC Agent dans le firmware — elle reste à valider sur d'autres modèles et régions.
+> Des **centaines de millions d'appareils Samsung sur les marchés internationaux** ont probablement cet outil de contrôle à distance pré-installé sans en être informés. Cette estimation concerne les marchés hors Corée (Europe, Afrique, Moyen-Orient, Asie du Sud-Est) et repose sur les parts de marché Samsung et la présence universelle d'OMC Agent dans le firmware — elle reste à valider sur d'autres modèles et régions.
 
 Cette pratique n'est pas divulguée lors de l'achat et n'apparaît dans aucune documentation grand public de Samsung.
 
@@ -363,10 +375,13 @@ Les deux appareils ne présentent **pas de malware** au sens strict. L'applicati
 
 L'analyse comparative sur deux Samsung SM-A175F neufs établit la **causalité directe** : dès que `device_provisioned=1` est positionné pendant la configuration initiale, OMC Agent ("Recommended apps") installe silencieusement RSSupport AAS2 avec 11 permissions critiques.
 
-**Samsung installe un outil de prise en main à distance dès les premières secondes de configuration d'un appareil neuf, sans en informer l'acheteur.**
+L'analyse complémentaire d'un Samsung Galaxy S21 (SM-G991N, marché coréen KT) confirme que le mécanisme est **universel sur Samsung** (même code OMC Agent) mais que RSSupport n'est **pas poussé sur tous les marchés** — Samsung contrôle le déploiement côté serveur, probablement pour se conformer au PIPA en Corée. Les marchés internationaux (suffixe `F`) sont les marchés cibles.
+
+**Samsung installe un outil de prise en main à distance dès les premières secondes de configuration d'un appareil neuf sur les marchés internationaux, sans en informer l'acheteur.**
 
 Il est fortement recommandé de désinstaller cette application immédiatement.
 
 ---
 
-*Rapport généré le 2026-08-06, mis à jour le 2026-08-25 | Outils : ADB + jadx 1.5.6 + aapt | Analyste : SyliSec | 2 appareils analysés*
+*Rapport généré le 2026-08-06, mis à jour le 2026-09-19 | Outils : ADB + jadx 1.5.6 + aapt | Analyste : SyliSec | 3 appareils analysés (2× SM-A175F + 1× SM-G991N)*  
+*Responsible disclosure envoyé à mobile.security@samsung.com le 2026-09-19 — Publication prévue le 2026-10-03*

@@ -1,9 +1,9 @@
 Rapport Forensic — Samsung SM-A175F (Galaxy A17)
 
-**Date d'analyse :** 2026-08-06 (appareil 1) / 2026-08-25 (appareil 2)
+**Date d'analyse :** 2026-08-06 (appareil 1) / 2026-08-25 (appareil 2) / 2026-09-27 (appareil 3 + S24)
 **Analyste :** SyliSec
-**Appareils analysés :** 2 × Samsung SM-A175F (Galaxy A17)
-**Identifiants ADB :** RZGL5193PVW / RFGL630AEAA
+**Appareils analysés :** 3 × Samsung SM-A175F (Galaxy A17) + 1 × SM-G991N (S21) + 1 × SM-S921B (S24)
+**Identifiants ADB SM-A175F :** RZGL5193PVW / RFGL630AEAA / (appareil 3)
 **OS :** Android 16
 **Patch sécurité :** 2026-03-05
 
@@ -11,15 +11,16 @@ Rapport Forensic — Samsung SM-A175F (Galaxy A17)
 
 ## 1. Résumé Exécutif
 
-L'analyse forensic de **deux Samsung Galaxy A17 neufs** a révélé le mécanisme exact par lequel Samsung installe silencieusement une application d'accès à distance (**RSSupport AAS2**) sur ses appareils.
+L'analyse forensic de **trois Samsung Galaxy A17 neufs** (SM-A175F) et de deux appareils Samsung supplémentaires (Galaxy S21 et Galaxy S24) a révélé le mécanisme exact par lequel Samsung installe silencieusement une application d'accès à distance (**RSSupport AAS2**) sur ses appareils.
 
-L'analyse comparative des deux appareils prouve de façon **causale** (et non simplement corrélative) que :
+L'analyse comparative des appareils prouve de façon **causale** (et non simplement corrélative) que :
 
 1. RSSupport AAS2 est **absent** tant que `device_provisioned` n'est pas positionné à `1`
-2. RSSupport AAS2 est **installé automatiquement** par OMC Agent dès que `device_provisioned=1` — ce qui peut survenir **avant même la fin du Setup Wizard**
-3. L'application reçoit d'office **11 permissions critiques** sans que l'utilisateur en soit informé
+2. RSSupport AAS2 est **installé et immédiatement désactivé** par OMC Agent dès que `device_provisioned=1` — ce qui peut survenir **avant même la fin du Setup Wizard**
+3. L'application reçoit d'office **42 permissions install-time accordées automatiquement** sans que l'utilisateur en soit informé
+4. Le déploiement est **contrôlé côté serveur Samsung** — absent sur le Galaxy S21 (Corée) et Galaxy S24 analysés
 
-Aucune session de contrôle à distance n'a été établie sur les deux appareils. Le reste du système est propre.
+Aucune session de contrôle à distance n'a été établie sur aucun des appareils analysés. Le reste du système est propre.
 
 **Niveau de risque global : MOYEN — Pratique Samsung préoccupante, mécanisme de déclenchement désormais prouvé**
 
@@ -75,21 +76,45 @@ Aucune session de contrôle à distance n'a été établie sur les deux appareil
 | Jamais lancée | `notLaunched=true`, `stopped=true` |
 | Usage statistiques | `used=<uninitialized>` |
 
-### 4.2 Permissions Accordées (11 permissions critiques)
+### 4.2 Permissions Accordées
+
+Le dump complet de l'installation live (capture `10_a175fds_live_install.txt`, 2026-09-27) révèle que RSSupport AAS2 reçoit **42 permissions install-time accordées automatiquement** (`granted=true`) dès l'installation, sans action de l'utilisateur. 7 permissions runtime supplémentaires (exigeant confirmation utilisateur) sont déclarées mais non accordées.
+
+**Permissions install-time les plus critiques (accordées automatiquement) :**
 
 | Permission | Impact |
 | --- | --- |
 | `CAPTURE_VIDEO_OUTPUT` | Capture écran vidéo |
 | `READ_FRAME_BUFFER` | Capture écran image |
 | `INJECT_EVENTS` | Simule touches/clics (contrôle à distance) |
-| `READ_CALL_LOG` | Accès journal d'appels |
 | `DELETE_PACKAGES` | Peut désinstaller des apps |
 | `SYSTEM_ALERT_WINDOW` | Overlay sur toutes les apps |
 | `INTERACT_ACROSS_USERS_FULL` | Accès multi-utilisateur |
 | `READ_PRIVILEGED_PHONE_STATE` | Données téléphoniques complètes |
 | `DUMP` | Dump système complet |
 | `QUERY_ALL_PACKAGES` | Liste toutes les apps installées |
+| `STATUS_BAR_SERVICE` | Contrôle barre de statut système |
+| `MANAGE_NETWORK_POLICY` | Modification politique réseau |
+| `READ_NETWORK_USAGE_HISTORY` | Historique réseau |
+| `FOREGROUND_SERVICE_MEDIA_PROJECTION` | Projection média en foreground |
+| `LAUNCH_SOFTWARE_UPDATE` | Déclenche mises à jour logicielle |
+| `PACKAGE_USAGE_STATS` | Statistiques d'utilisation des apps |
+| `READ_CS_DB` / `WRITE_CS_DB` | Accès base de données CS Samsung |
+| `SEC_FACTORY_PHONE` | Permission téléphone niveau usine Samsung |
 | `INTERNET` | Accès réseau |
+
+**Permissions runtime déclarées mais non accordées automatiquement :**
+
+| Permission | Commentaire |
+| --- | --- |
+| `READ_CALL_LOG` | Journal d'appels — demande utilisateur nécessaire |
+| `POST_NOTIFICATIONS` | Notifications |
+| `ACCESS_COARSE_LOCATION` | Localisation |
+| `READ_PHONE_STATE` | État téléphone |
+| `READ_EXTERNAL_STORAGE` | Stockage externe |
+| `BLUETOOTH_CONNECT` / `BLUETOOTH_SCAN` | Bluetooth |
+
+> **Note :** Le rapport initial mentionnait "11 permissions critiques" — ce chiffre correspondait aux permissions les plus notables d'un premier dump partiel. Le dump complet (`dumpsys package` exhaustif, capture live du 2026-09-27) révèle 42 permissions install-time auto-accordées. Ce chiffre n'altère pas les conclusions mais renforce la gravité du constat.
 
 ### 4.3 Infrastructure Serveur
 
@@ -210,19 +235,34 @@ L'extraction de l'APK d'OMC Agent (`/system/priv-app/OMCAgent5/OMCAgent5.apk`) r
 
 Samsung a nommé son agent d'installation silencieuse **"Applications recommandées"** — un nom volontairement anodin qui ne laisse pas soupçonner son rôle réel : déployer RSSupport AAS2 sur tous les appareils neufs. Cette app est une **app système privilégiée** (`/system/priv-app/`), invisible par défaut dans les paramètres.
 
-### 8.4 Tableau Comparatif Final
+### 8.4 Capture Live — SM-A175F (2026-09-27)
 
-| Critère | Appareil 1 | Appareil 2 |
-| --- | --- | --- |
-| Setup Wizard terminé | Oui | **Non** |
-| `device_provisioned` | 1 | **1** |
-| RSSupport AAS2 | **Présent** (build 452) | **Présent** (build 454) |
-| Installé par | OMC Agent | OMC Agent |
-| OMC Agent version | 5.8.19 | 5.8.19 |
-| OMC Agent nom affiché | "Recommended apps" | "Recommended apps" |
-| Connexion RSSupport | Aucune | Aucune |
+Un troisième SM-A175F a fait l'objet d'une capture complète en temps réel le 2026-09-27. Le dump `dumpsys package com.rsupport.rs.activity.rsupport.aas2` confirme :
 
-### 8.5 Conclusion Causale Révisée
+| Champ | Valeur |
+| --- | --- |
+| `timeStamp` | **2026-09-27 09:17:33** |
+| `firstInstallTime` | **2026-09-27 09:17:33** |
+| `installerPackageName` | `com.samsung.android.app.omcagent` |
+| `versionName` | 1.5 (build **454**) |
+| `lastDisabledCaller` | `com.samsung.android.app.omcagent` |
+| `stopped=true`, `notLaunched=true` | Jamais lancée |
+
+**Point critique :** `lastDisabledCaller: com.samsung.android.app.omcagent` confirme qu'OMC Agent **installe et désactive immédiatement** RSSupport AAS2 — l'app est présente en mémoire, invisible dans le lanceur, prête à être activée à distance. Ce comportement est cohérent sur les 3 SM-A175F analysés.
+
+### 8.5 Tableau Comparatif Final
+
+| Critère | Appareil 1 | Appareil 2 | Appareil 3 |
+| --- | --- | --- | --- |
+| Date d'analyse | 2026-08-06 | 2026-08-25 | **2026-09-27** |
+| Setup Wizard terminé | Oui | **Non** | Oui |
+| `device_provisioned` | 1 | **1** | 1 |
+| RSSupport AAS2 | **Présent** (build 452) | **Présent** (build 454) | **Présent** (build 454) |
+| Installé par | OMC Agent | OMC Agent | OMC Agent |
+| `lastDisabledCaller` | OMC Agent | OMC Agent | OMC Agent |
+| Connexion RSSupport | Aucune | Aucune | Aucune |
+
+### 8.6 Conclusion Causale Révisée
 
 | `device_provisioned` | `user_setup_complete` | RSSupport AAS2 |
 | --- | --- | --- |
@@ -240,9 +280,10 @@ Le déclencheur réel est le positionnement de **`device_provisioned=1`** — qu
 **Non.** Samsung installe silencieusement un outil de contrôle à distance complet sans demander le consentement explicite de l'utilisateur. Bien que cette pratique soit techniquement permise par les CGU Samsung dans certaines régions, elle :
 
 - N'est **pas transparente** envers l'utilisateur
-- Installe un outil avec **11 permissions critiques** (capture écran, contrôle tactile)
+- Installe un outil avec **42 permissions install-time accordées automatiquement** (capture écran, contrôle tactile, dump système, suppression d'apps…)
 - Utilise le canal `SUW_CHANNEL` (Setup Wizard) de façon non divulguée
 - Peut être activée à distance **par Samsung via OMC Agent**, sans action physique de l'utilisateur
+- **Désactive l'app après installation** pour la rendre invisible, tout en la maintenant prête à l'activation distante
 
 ### Cause confirmée
 
@@ -299,17 +340,20 @@ L'analyse d'un troisième appareil (Samsung Galaxy S21, SM-G991N, version corée
 
 Le S21 coréen testé (device_provisioned=1, user_setup_complete=1) a OMC Agent v5.7.36 mais aucune trace de RSSupport AAS2. Cette différence confirme que **la liste des applications à installer est configurée côté serveur Samsung**, pas dans l'APK lui-même — Samsung décide dynamiquement, par marché et par modèle, quels appareils reçoivent RSSupport.
 
-| Critère | SM-A175F (×2) | SM-G991N KT (Corée) |
-| --- | --- | --- |
-| OMC Agent présent | ✅ v5.8.19 | ✅ v5.7.36 |
-| SetupWizardReceiver identique | ✅ | ✅ |
-| RSSupport AAS2 installé | ✅ Présent | ❌ Absent |
-| `device_provisioned` | 1 | 1 |
-| Marché | International (suffixe `F`) | Corée (KT) |
+| Critère | SM-A175F (×3) | SM-G991N KT (Corée) | SM-S921B (S24) |
+| --- | --- | --- | --- |
+| OMC Agent présent | ✅ v5.8.19 | ✅ v5.7.36 | ✅ v5.6.42 |
+| SetupWizardReceiver identique | ✅ | ✅ | ✅ |
+| RSSupport AAS2 installé | ✅ Présent | ❌ Absent | ❌ Absent |
+| `device_provisioned` | 1 | 1 | 1 |
+| Android | 16 | — | 14 |
+| Marché | International (suffixe `F`) | Corée (KT) | International (suffixe `B`) |
 
-**Hypothèse :** Samsung exclut probablement le marché coréen de ce déploiement en raison du **PIPA** (Personal Information Protection Act), la loi coréenne sur la protection des données personnelles. Les marchés internationaux (Europe, Afrique, Moyen-Orient — suffixe `F`) semblent ciblés.
+**SM-S921B (Galaxy S24, suffixe B = Royaume-Uni/Europe) :** Analysé le 2026-09-27 (capture `09_s24_analysis.txt`). OMC Agent présent et actif (11 apps installées via OMC Agent : Samsung Tips, AR Zone, Kids Home, Clock, Samsung Daily, Calendar, etc.), mais **RSSupport absent**. Ce résultat sur un modèle haut de gamme récent (Android 14) confirme que l'absence de RSSupport est une décision de configuration serveur, non un défaut matériel ou de firmware.
 
-**Conséquence :** Le déploiement de RSSupport n'est pas accidentel ou résiduel — c'est une **décision d'infrastructure active** de Samsung, modulée selon les contraintes légales locales.
+**Hypothèse :** Samsung segmente le déploiement de RSSupport selon le modèle et/ou le marché. Les appareils d'entrée/milieu de gamme sur marchés internationaux (SM-A175F, suffixe `F`) sont ciblés. Les marchés coréens sont probablement exclus en raison du **PIPA** (Personal Information Protection Act). La situation du SM-S921B (`B`) méritera vérification sur d'autres marchés.
+
+**Conséquence :** Le déploiement de RSSupport n'est pas accidentel ou résiduel — c'est une **décision d'infrastructure active** de Samsung, modulée selon les contraintes légales locales et potentiellement selon la gamme de prix de l'appareil.
 
 ### 11.3 Impact Estimé
 
@@ -364,24 +408,26 @@ La controverse la plus similaire documentée publiquement :
 
 ## 13. Conclusion
 
-Les deux appareils ne présentent **pas de malware** au sens strict. L'application RSSupport AAS2 est un outil légitime de support Samsung mais constitue un **risque de confidentialité significatif** :
+Les appareils analysés ne présentent **pas de malware** au sens strict. L'application RSSupport AAS2 est un outil légitime de support Samsung mais constitue un **risque de confidentialité significatif** :
 
-- **Installation automatique déclenchée par `device_provisioned=1`** — prouvé sur deux appareils, deux builds (452 et 454)
+- **Installation automatique déclenchée par `device_provisioned=1`** — prouvé sur **3 SM-A175F**, trois captures indépendantes (builds 452, 454, 454)
 - **Peut survenir avant la fin du Setup Wizard** — plus précoce et moins détectable que supposé
-- **11 permissions critiques accordées d'office** : capture écran, contrôle tactile, accès journal d'appels
+- **42 permissions install-time accordées automatiquement** (dont capture écran, contrôle tactile, dump système, suppression d'apps, accès DB Samsung) + 7 permissions runtime déclarées
+- **OMC Agent installe ET désactive immédiatement** RSSupport (`lastDisabledCaller: com.samsung.android.app.omcagent`) — l'app est prête à être activée à distance sans laisser de trace visible
 - **Activation à distance possible par Samsung via OMC Agent**, sans action physique de l'utilisateur
 - **OMC Agent se nomme "Recommended apps"** dans l'interface — nom volontairement trompeur
 - **Pratique non divulguée** lors de l'achat
 
-L'analyse comparative sur deux Samsung SM-A175F neufs établit la **causalité directe** : dès que `device_provisioned=1` est positionné pendant la configuration initiale, OMC Agent ("Recommended apps") installe silencieusement RSSupport AAS2 avec 11 permissions critiques.
+L'analyse comparative sur 4 appareils (3× SM-A175F + 1× SM-G991N + 1× SM-S921B) établit :
+1. La **causalité directe** sur SM-A175F : dès que `device_provisioned=1`, OMC Agent installe silencieusement RSSupport AAS2 avec 42 permissions install-time
+2. Le **contrôle côté serveur Samsung** : OMC Agent est universel, mais RSSupport n'est déployé que sur certains marchés/modèles (absent sur S21 KT et S24)
+3. Le **ciblage probable des marchés internationaux** d'entrée/milieu de gamme (suffixe `F`), potentiellement excluant la Corée pour raisons PIPA
 
-L'analyse complémentaire d'un Samsung Galaxy S21 (SM-G991N, marché coréen KT) confirme que le mécanisme est **universel sur Samsung** (même code OMC Agent) mais que RSSupport n'est **pas poussé sur tous les marchés** — Samsung contrôle le déploiement côté serveur, probablement pour se conformer au PIPA en Corée. Les marchés internationaux (suffixe `F`) sont les marchés cibles.
-
-**Samsung installe un outil de prise en main à distance dès les premières secondes de configuration d'un appareil neuf sur les marchés internationaux, sans en informer l'acheteur.**
+**Samsung installe un outil de prise en main à distance avec 42 permissions automatiques dès les premières secondes de configuration d'un appareil neuf sur les marchés internationaux, sans en informer l'acheteur.**
 
 Il est fortement recommandé de désinstaller cette application immédiatement.
 
 ---
 
-*Rapport généré le 2026-08-06, mis à jour le 2026-09-19 | Outils : ADB + jadx 1.5.6 + aapt | Analyste : SyliSec | 3 appareils analysés (2× SM-A175F + 1× SM-G991N)*  
+*Rapport généré le 2026-08-06, mis à jour le 2026-09-27 | Outils : ADB + jadx 1.5.6 + aapt | Analyste : SyliSec | 5 appareils analysés (3× SM-A175F + 1× SM-G991N + 1× SM-S921B)*  
 *Responsible disclosure envoyé à mobile.security@samsung.com le 2026-09-19 — Publication prévue le 2026-10-03*

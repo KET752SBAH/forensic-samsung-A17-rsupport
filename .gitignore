@@ -6,16 +6,8 @@ STRATEGIE_PUBLICATION.md
 # Captures de navigation (non forensiques)
 captures/08_omcagent_details.png
 captures/09_omcagent_fiche.png
-captures/10_omcagent_top.png
-captures/10_search_remote_absent.png
-captures/11_omcagent_correct.png
-captures/12_omcagent_final.png
-captures/13_omcagent_v2.png
+captures/10b_search_remote_absent.png
 captures/14_settings_main.png
-captures/15_settings_search_omc.png
-captures/16_search_remote_support.png
-captures/17_search_open.png
-captures/18_settings_awake.png
 
 # Système
 .DS_Store

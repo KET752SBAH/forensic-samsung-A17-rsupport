@@ -130,9 +130,14 @@ Ce rapport se concentre sur Samsung. La présence de variants pour d'autres fabr
 ## Mitigation
 
 ```bash
-# Désinstaller RSSupport AAS2
+# Étape 1 — Supprimer RSSupport AAS2
 adb shell pm uninstall --user 0 com.rsupport.rs.activity.rsupport.aas2
+
+# Étape 2 — Désactiver OMC Agent (empêche la réinstallation automatique)
+adb shell pm disable-user --user 0 com.samsung.android.app.omcagent
 ```
+
+> **Note :** La suppression seule n'est pas permanente — OMC Agent peut réinstaller RSSupport lors de sa prochaine communication avec les serveurs Samsung. La désactivation d'OMC Agent est nécessaire pour empêcher toute réinstallation.
 
 ---
 

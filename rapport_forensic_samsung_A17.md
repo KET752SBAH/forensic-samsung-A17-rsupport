@@ -301,9 +301,14 @@ Le déclencheur réel est le positionnement de **`device_provisioned=1`** — qu
 ### Action immédiate
 
 ```bash
-# Désinstaller RSSupport AAS2
+# Étape 1 — Supprimer RSSupport AAS2
 adb shell pm uninstall --user 0 com.rsupport.rs.activity.rsupport.aas2
+
+# Étape 2 — Désactiver OMC Agent (empêche la réinstallation automatique)
+adb shell pm disable-user --user 0 com.samsung.android.app.omcagent
 ```
+
+> **Note :** La suppression seule (étape 1) n'est pas permanente — OMC Agent peut réinstaller RSSupport lors de sa prochaine communication avec les serveurs Samsung. La désactivation d'OMC Agent (étape 2) est nécessaire pour empêcher toute réinstallation. OMC Agent étant une app système, il ne peut pas être désinstallé sans root — `disable-user` le met hors d'état de nuire.
 
 ### Actions complémentaires
 
